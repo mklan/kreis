@@ -28,4 +28,3 @@ var t,e=require("buffer").Buffer,i=arguments[3],r=require("process");function n(
 },{"./canvas":"Dryx","./math.utils":"jKEY"}],"Focm":[function(require,module,exports) {
 "use strict";var e=t(require("./game"));function t(e){return e&&e.__esModule?e:{default:e}}function n(e){var t=e.total,n=e.isHighcore;document.getElementById("lastScore").innerText="last: ".concat(t),n&&(document.getElementById("highScore").innerText="best: ".concat(t))}require("./styles.css"),(0,e.default)({canvasEl:"canvas",onGameOver:n});
 },{"./game":"QcRT","./styles.css":"ansU"}]},{},["Focm"], null)
-//# sourceMappingURL=/src.bb7b4018.js.map
