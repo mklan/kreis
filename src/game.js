@@ -14,29 +14,31 @@ function createGame({ canvasEl, onGameOver }) {
 
   const referenceRadius = 270;
   let referenceRing;
+  let faul;
 
   function onStartDrawing(point, api) {
+    faul = false; // reset
     referenceDistance = getDistance(point, centerPosition);
-    // if (
-    //   referenceDistance < referenceRadius - 10 ||
-    //   referenceDistance > referenceRadius + 10
-    // ) {
-    //   api.disableDrawing(true);
-    //   return;
-    // }
+    if (
+      referenceDistance < referenceRadius - 10 ||
+      referenceDistance > referenceRadius + 10
+    ) {
+      faul = true;
+      return;
+    }
     total = 0;
     console.log('start', referenceDistance);
     referenceRing.animate('radius', 0, {
       duration: 200,
       onChange: api.canvas.renderAll.bind(api.canvas),
       // onComplete: function() {
-      //   animateBtn.disabled = false;
       // },
       // easing: fabric.util.ease[document.getElementById('easing').value]
     });
   }
 
   function onMove(point) {
+    if (faul) return;
     const distance = getDistance(point, centerPosition);
     const deviation = Math.abs(distance - referenceDistance);
 
@@ -55,6 +57,9 @@ function createGame({ canvasEl, onGameOver }) {
       duration: 400,
       onChange: api.canvas.renderAll.bind(api.canvas),
       onComplete: () => {
+        if (faul) {
+          return;
+        }
         referenceRing.stroke = '#70C1B3';
         referenceRing.animate('strokeWidth', 10, {
           duration: 200,
