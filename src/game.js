@@ -12,7 +12,7 @@ function createGame({ canvasEl, onGameOver }) {
 
   let centerPosition;
 
-  const referenceRadius = 270;
+  let referenceRadius;
   let referenceRing;
   let faul;
 
@@ -93,6 +93,7 @@ function createGame({ canvasEl, onGameOver }) {
       radius: 20,
     });
 
+    referenceRadius = Math.min(centerPosition.x, centerPosition.y) / 2;
     // referenceRadius
     referenceRing = api.drawCircle({
       ...centerPosition,

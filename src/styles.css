@@ -9,8 +9,14 @@ body {
   font-family: 'Helvetica Neue', sans-serif;
 }
 
+.layout {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
 .bottomPane {
-  position: absolute;
+  /* position: absolute; */
   bottom: 0;
   display: flex;
   justify-content: space-between;
@@ -26,6 +32,7 @@ body {
 }
 
 #canvas-container {
+  flex: 1;
   height: 100%;
   width: 100%;
 }
@@ -40,7 +47,7 @@ h2 {
 
 #instructions {
   width: 100%;
-  position: absolute;
+  /* position: absolute; */
   top: 6rem;
   text-align: center;
 }
