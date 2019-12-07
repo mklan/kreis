@@ -14,14 +14,15 @@ function createGame({ canvasEl, onGameOver }) {
 
   let referenceRadius;
   let referenceRing;
+  const startTolerance = 5 * devicePixelRatio;
   let faul;
 
   function onStartDrawing(point, api) {
     faul = false; // reset
     referenceDistance = getDistance(point, centerPosition);
     if (
-      referenceDistance < referenceRadius - 10 ||
-      referenceDistance > referenceRadius + 10
+      referenceDistance < referenceRadius - startTolerance ||
+      referenceDistance > referenceRadius + startTolerance
     ) {
       faul = true;
       return;
