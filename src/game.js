@@ -12,18 +12,18 @@ function createGame({ canvasEl, onGameOver }) {
 
   let centerPosition;
 
-  const referenceRadius = 110;
+  const referenceRadius = 270;
   let referenceRing;
 
   function onStartDrawing(point, api) {
     referenceDistance = getDistance(point, centerPosition);
-    if (
-      referenceDistance < referenceRadius - 5 ||
-      referenceDistance > referenceRadius + 5
-    ) {
-      api.disableDrawing(true);
-      return;
-    }
+    // if (
+    //   referenceDistance < referenceRadius - 10 ||
+    //   referenceDistance > referenceRadius + 10
+    // ) {
+    //   api.disableDrawing(true);
+    //   return;
+    // }
     total = 0;
     console.log('start', referenceDistance);
     referenceRing.animate('radius', 0, {

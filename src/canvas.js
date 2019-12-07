@@ -14,12 +14,12 @@ function createCanvas(
   fabric.Object.prototype.selectable = false;
   fabric.Object.prototype.transparentCorners = false;
 
-  const canvas = new fabric.StaticCanvas(canvasEl, {
+  const canvas = new fabric.Canvas(canvasEl, {
     isDrawingMode: true,
   });
 
-  // canvas.freeDrawingBrush.color = '#F25F5C';
-  // canvas.freeDrawingBrush.width = 10;
+  canvas.freeDrawingBrush.color = '#F25F5C';
+  canvas.freeDrawingBrush.width = 10;
 
   let containerSize = {
     width: document.getElementById('canvas-container').offsetWidth,
@@ -80,38 +80,52 @@ function createCanvas(
     init(api);
   }
 
-  let path;
-  document.body.onmousedown = ({ clientX, clientY }) => {
+  canvas.on('mouse:down', ({ pointer }) => {
     reset();
-    path = new fabric.Path(`M ${clientX} ${clientY}`, {
-      strokeWidth: 10,
-      stroke: '#F25F5C',
-      fill: '',
-      selectable: false,
-      hasRotatingPoint: false,
-      objectCaching: false,
-    });
-    path.id = Date.now();
-    canvas.add(path);
-    disableDrawing(false);
-    onStartDrawing({ x: clientX, y: clientY }, api);
+    onStartDrawing(pointer, api);
     mouseDown = true;
-    canvas.renderAll();
-  };
-
-  document.body.onmouseup = ({ clientX, clientY }) => {
+  });
+  canvas.on('mouse:up', ({ pointer }) => {
     mouseDown = false;
-    if (drawingDisabled) return;
-    onEnd({ x: clientX, y: clientY }, api);
-  };
+    onEnd(pointer, api);
+  });
+  canvas.on('mouse:move', ({ pointer }) => {
+    if (!mouseDown) return;
+    onMove(pointer);
+  });
 
-  document.body.onmousemove = ({ clientX, clientY }) => {
-    if (!mouseDown || drawingDisabled) return;
-    const newLine = ['L', clientX, clientY];
-    path.path.push(newLine);
-    onMove({ x: clientX, y: clientY }, api);
-    canvas.renderAll();
-  };
+  // let path;
+  // document.body.onpointerdown = ({ clientX, clientY }) => {
+  //   reset();
+  //   path = new fabric.Path(`M ${clientX} ${clientY}`, {
+  //     strokeWidth: 10,
+  //     stroke: '#F25F5C',
+  //     fill: '',
+  //     selectable: false,
+  //     hasRotatingPoint: false,
+  //     objectCaching: false,
+  //   });
+  //   path.id = Date.now();
+  //   canvas.add(path);
+  //   disableDrawing(false);
+  //   onStartDrawing({ x: clientX, y: clientY }, api);
+  //   mouseDown = true;
+  //   canvas.renderAll();
+  // };
+
+  // document.body.onpointerup = ({ clientX, clientY }) => {
+  //   mouseDown = false;
+  //   if(drawingDisabled) return
+  //   onEnd({ x: clientX, y: clientY }, api);
+  // };
+
+  // document.body.onpointermove = ({ clientX, clientY }) => {
+  //   if (!mouseDown || drawingDisabled) return;
+  //   const newLine = ['L', clientX, clientY];
+  //   path.path.push(newLine);
+  //   onMove({ x: clientX, y: clientY }, api);
+  //   canvas.renderAll();
+  // };
 
   init(api);
 }
