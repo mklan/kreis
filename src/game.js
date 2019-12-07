@@ -12,11 +12,28 @@ function createGame({ canvasEl, onGameOver }) {
 
   let centerPosition;
 
+  const referenceRadius = 110;
+  let referenceRing;
+
   function onStartDrawing(point, api) {
-    api.reset();
     referenceDistance = getDistance(point, centerPosition);
+    if (
+      referenceDistance < referenceRadius - 5 ||
+      referenceDistance > referenceRadius + 5
+    ) {
+      api.disableDrawing(true);
+      return;
+    }
     total = 0;
     console.log('start', referenceDistance);
+    referenceRing.animate('radius', 0, {
+      duration: 200,
+      onChange: api.canvas.renderAll.bind(api.canvas),
+      // onComplete: function() {
+      //   animateBtn.disabled = false;
+      // },
+      // easing: fabric.util.ease[document.getElementById('easing').value]
+    });
   }
 
   function onMove(point) {
@@ -28,16 +45,27 @@ function createGame({ canvasEl, onGameOver }) {
   }
 
   function onEnd(_, api) {
+    console.log('pointCount', pointCount);
     if (pointCount < 30) {
       api.reset();
       pointCount = 0;
       return;
     }
-    api.drawCircle({
-      ...centerPosition,
-      stroke: '#70C1B3',
-      strokeWidth: 10,
-      radius: referenceDistance,
+    referenceRing.animate('radius', referenceDistance, {
+      duration: 400,
+      onChange: api.canvas.renderAll.bind(api.canvas),
+      onComplete: () => {
+        referenceRing.stroke = '#70C1B3';
+        referenceRing.animate('strokeWidth', 10, {
+          duration: 200,
+          onChange: api.canvas.renderAll.bind(api.canvas),
+          // onComplete: function() {
+          //   animateBtn.disabled = false;
+          // },
+          // easing: fabric.util.ease[document.getElementById('easing').value]
+        });
+      },
+      // easing: fabric.util.ease[document.getElementById('easing').value]
     });
     if (!highscore || highscore > total) {
       highscore = total;
@@ -50,14 +78,22 @@ function createGame({ canvasEl, onGameOver }) {
     pointCount = 0;
   }
 
-  function init(canvas, api) {
+  function createInitialScene(api) {
     centerPosition = api.getCenter();
-    canvas.clear();
+    api.canvas.clear();
     api.drawCircle({
       ...centerPosition,
       fill: '#50514F',
       strokeWidth: 10,
       radius: 20,
+    });
+
+    // referenceRadius
+    referenceRing = api.drawCircle({
+      ...centerPosition,
+      stroke: '#50514F',
+      strokeWidth: 1,
+      radius: referenceRadius,
     });
   }
 
@@ -65,7 +101,7 @@ function createGame({ canvasEl, onGameOver }) {
     onMove,
     onStartDrawing,
     onEnd,
-    init,
+    init: createInitialScene,
   });
 }
 
