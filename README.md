@@ -21,8 +21,9 @@ Game with the goal to draw a perfect circle.
 - [] google play (cordova)
 - [] soundtrack
 - [] tests
-- [] localstorage
+- [x] localstorage
 - [] share
 - [] multi-player (round based)
 - [x] ui improvements
 - [x] smoothing path
+- [x] PWA
