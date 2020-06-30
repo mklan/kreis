@@ -1,14 +1,12 @@
 import createCanvas from './canvas';
 import { getDistance } from './math.utils';
 
-function createGame({ canvasEl, onGameOver }) {
+function createGame({ canvasEl, onGameOver, highscore }) {
   let referenceDistance;
 
   let total = 0;
   const totalDistance = 0;
   let pointCount = 0;
-
-  let highscore;
 
   let centerPosition;
 
