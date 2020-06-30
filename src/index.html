@@ -2,8 +2,16 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta content="black-translucent" name="apple-mobile-web-app-status-bar-style">
+    <link rel="apple-touch-icon" sizes="192x192" href="./icons/icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="72x72" href="./icons/icon-72x72.png">
     <title>Kreis</title>
-  </head>
+    <link rel="manifest" href="./manifest.webmanifest">
+    </head>
   <body>
     <div class="layout">
       <div id="instructions">
@@ -13,10 +21,22 @@
         <canvas id="canvas"></canvas>
       </div>
       <div class="bottomPane">
-        <div class="score" id="lastScore"><label>last:</label>0</div>
-        <div class="score" id="highScore"><label>best:</label>0</div>
+        <div class="score" id="lastScore"><label></div>
+        <div class="score" id="highScore"><label></div>
       </div>
     </div>
     <script src="index.js"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+			const x = 'service-worker.js';
+			navigator.serviceWorker.register(x)
+				.then(function(registration) {
+					console.log('Registration successful, scope is:', registration.scope);
+				})
+				.catch(function(error) {
+					console.log('Service worker registration failed, error:', error);
+				});
+		}
+    </script>
   </body>
 </html>
