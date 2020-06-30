@@ -24,5 +24,5 @@ Game with the goal to draw a perfect circle.
 - [] localstorage
 - [] share
 - [] multi-player (round based)
-- [] ui improvements
-- [] smoothing path
+- [x] ui improvements
+- [x] smoothing path
