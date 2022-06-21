@@ -5,8 +5,8 @@ function createGame({ canvasEl, onGameOver, highscore }) {
   let referenceDistance;
 
   let total = 0;
-  const totalDistance = 0;
   let pointCount = 0;
+  let startTime = 0;
 
   let centerPosition;
 
@@ -25,7 +25,8 @@ function createGame({ canvasEl, onGameOver, highscore }) {
       faul = true;
       return;
     }
-    total = 0;
+    total = 10000;
+    startTime = Date.now();
     console.log('start', referenceDistance);
     referenceRing.animate('radius', 0, {
       duration: 200,
@@ -42,12 +43,17 @@ function createGame({ canvasEl, onGameOver, highscore }) {
     const deviation = Math.abs(distance - referenceDistance);
 
     pointCount++;
-    total += parseInt(deviation, 10);
+    total -= parseInt(deviation, 10);
+    if (total < 0) {
+      total = 1;
+    }
   }
 
   function onEnd(_, api) {
+    const time = (Date.now() - startTime) / 1000;
+    console.log('time', time);
     console.log('pointCount', pointCount);
-    if (pointCount < 30) {
+    if (pointCount < 100) {
       api.reset();
       pointCount = 0;
       return;
@@ -71,12 +77,17 @@ function createGame({ canvasEl, onGameOver, highscore }) {
       },
       // easing: fabric.util.ease[document.getElementById('easing').value]
     });
-    if (!highscore || highscore > total) {
+    if (!highscore || highscore < total) {
       highscore = total;
     }
+
+    if (pointCount > 230 && time < 5) {
+      total += 1000 / time;
+    }
+
     onGameOver({
       total,
-      avg: total / pointCount,
+      avg: (10000 - total) / pointCount,
       isHighcore: highscore === total,
     });
     pointCount = 0;

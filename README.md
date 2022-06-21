@@ -16,7 +16,7 @@ Game with the goal to draw a perfect circle.
 
 ## TODOs / Roadmap
 
-- [] better score system (time factor)
+- [x] better score system (time factor)
 - [] checkpoint control system
 - [] google play (cordova)
 - [] soundtrack
