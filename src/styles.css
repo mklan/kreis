@@ -56,3 +56,12 @@ h2 {
   top: 6rem;
   text-align: center;
 }
+
+#author {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  margin: 0.5rem;
+  font-size: small;
+  color: black;
+}
