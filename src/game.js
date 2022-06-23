@@ -86,7 +86,7 @@ function createGame({ canvasEl, onGameOver, highscore }) {
     }
 
     onGameOver({
-      total,
+      total: total.parseInt(),
       avg: (10000 - total) / pointCount,
       isHighcore: highscore === total,
     });
