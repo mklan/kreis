@@ -20,6 +20,7 @@ Game with the goal to draw a perfect circle.
 - [] checkpoint control system
 - [] google play (cordova)
 - [] soundtrack
+- [] sound effects i.E https://github.com/nbrosowsky/tonejs-instruments
 - [] tests
 - [x] localstorage
 - [] share
