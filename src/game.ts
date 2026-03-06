@@ -28,11 +28,31 @@ const MAX_TIME_BONUS_SECONDS = 5;
 const MIN_SWEEP_FOR_BONUS = 350;
 // Base value used to compute the time bonus (bonus = TIME_BONUS_BASE / time)
 const TIME_BONUS_BASE = 500;
+// Roundness bonus awarded when all sectors are drawn with consistent radius (max total)
+const MAX_ROUNDNESS_BONUS = 1000;
 // Visual radii (px)
 const START_MARKER_RADIUS = 8;
 const CENTER_DOT_RADIUS = 8;
-// Fill colour for completed sector arcs
-const SECTOR_ARC_FILL = 'rgba(112, 193, 179, 0.72)';
+
+/**
+ * Compute the fill colour for a sector arc based on its average deviation.
+ * Excellent (< 5 px)  → green
+ * Good      (5–15 px) → yellow-green → yellow
+ * Poor      (> 15 px) → red
+ */
+function sectorColor(avgDeviation: number): string {
+  // Map deviation to a 0-1 quality value
+  const quality = Math.max(0, Math.min(1, 1 - avgDeviation / 20));
+  if (quality >= 0.75) {
+    // Green: rgba(80, 200, 120, ...)
+    return `rgba(80, 200, 120, 0.75)`;
+  } else if (quality >= 0.4) {
+    // Yellow: rgba(255, 224, 102, ...)
+    return `rgba(255, 200, 50, 0.75)`;
+  }
+  // Red: rgba(242, 95, 92, ...)
+  return `rgba(242, 95, 92, 0.75)`;
+}
 
 interface GameOptions {
   canvasEl: string;
@@ -104,19 +124,33 @@ function createGame({ canvasEl, onGameOver, highscore: initialHighscore }: GameO
   function computeScore(): number {
     const maxPerSector = 10000 / NUM_CHECKPOINTS;
 
+    const avgDeviations: number[] = [];
     let totalScore = 0;
     for (let i = 0; i < NUM_CHECKPOINTS; i++) {
       if (sectorCounts[i] === 0) continue;
       const avgDeviation = sectorDeviations[i] / sectorCounts[i];
+      avgDeviations.push(avgDeviation);
       totalScore += Math.max(0, maxPerSector - avgDeviation * PENALTY_PER_PIXEL);
     }
+
+    // Roundness bonus: reward consistent radius across all drawn sectors.
+    // Computed as the spread (max - min) of per-sector average deviations;
+    // a perfectly uniform circle has spread ≈ 0 → full bonus.
+    if (avgDeviations.length >= 2) {
+      const spread = Math.max(...avgDeviations) - Math.min(...avgDeviations);
+      const roundnessFactor = Math.max(0, 1 - spread / 15);
+      totalScore += Math.round(MAX_ROUNDNESS_BONUS * roundnessFactor);
+    }
+
     return Math.round(totalScore);
   }
 
   // ---- arc helpers ----
   /**
    * Draw a pie-slice arc for the given sector index, based on the user's
-   * start angle and chosen direction. Returns the fabric object.
+   * start angle and chosen direction.  The arc colour reflects how accurately
+   * the sector was drawn (green = great, yellow = ok, red = poor).
+   * Returns the fabric object.
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function drawSectorArc(sectorIdx: number): any {
@@ -139,7 +173,14 @@ function createGame({ canvasEl, onGameOver, highscore: initialHighscore }: GameO
       toDeg = startAngle - (sectorIdx + 1) * CHECKPOINT_ANGLE;
     }
 
-    return currentApi.drawSector(cx, cy, r, fromDeg, toDeg, direction === 1, SECTOR_ARC_FILL);
+    // Choose fill colour based on how closely the user stayed on the ring
+    const avgDev =
+      sectorCounts[sectorIdx] > 0
+        ? sectorDeviations[sectorIdx] / sectorCounts[sectorIdx]
+        : 20;
+    const fill = sectorColor(avgDev);
+
+    return currentApi.drawSector(cx, cy, r, fromDeg, toDeg, direction === 1, fill);
   }
 
   // ---- event handlers ----

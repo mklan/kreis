@@ -1,0 +1,144 @@
+name: Mobile Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: 'Platform to build'
+        required: true
+        default: 'both'
+        type: choice
+        options:
+          - both
+          - android
+          - ios
+
+jobs:
+  build-web:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout 🛎️
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+
+      - name: Install dependencies 📦
+        run: yarn install --frozen-lockfile
+
+      - name: Build web app 🔧
+        run: yarn build
+
+      - name: Upload web dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: dist/
+          retention-days: 1
+
+  build-android:
+    needs: build-web
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    if: ${{ inputs.platform == 'android' || inputs.platform == 'both' }}
+    steps:
+      - name: Checkout 🛎️
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+
+      - name: Install dependencies 📦
+        run: yarn install --frozen-lockfile
+
+      - name: Download web dist
+        uses: actions/download-artifact@v4
+        with:
+          name: web-dist
+          path: dist/
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Add Android platform
+        run: npx cap add android
+
+      - name: Sync Capacitor
+        run: npx cap sync android
+
+      - name: Build Android APK (debug)
+        working-directory: android
+        run: ./gradlew assembleDebug
+
+      - name: Upload Android APK artifact 📱
+        uses: actions/upload-artifact@v4
+        with:
+          name: kreis-android-debug
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30
+
+  build-ios:
+    needs: build-web
+    runs-on: macos-latest
+    permissions:
+      contents: read
+    if: ${{ inputs.platform == 'ios' || inputs.platform == 'both' }}
+    steps:
+      - name: Checkout 🛎️
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+
+      - name: Install dependencies 📦
+        run: yarn install --frozen-lockfile
+
+      - name: Download web dist
+        uses: actions/download-artifact@v4
+        with:
+          name: web-dist
+          path: dist/
+
+      - name: Add iOS platform
+        run: npx cap add ios
+
+      - name: Sync Capacitor
+        run: npx cap sync ios
+
+      - name: Build iOS app (unsigned)
+        run: |
+          xcodebuild \
+            -workspace ios/App/App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath ios/build \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            | xcpretty || true
+
+      - name: Upload iOS build artifact 📱
+        uses: actions/upload-artifact@v4
+        with:
+          name: kreis-ios-simulator
+          path: ios/build/Build/Products/Release-iphonesimulator/App.app
+          retention-days: 30
