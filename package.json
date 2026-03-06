@@ -32,6 +32,7 @@
     "eslint-plugin-react-hooks": "^1.7.0",
     "gh-pages": "^2.1.1",
     "parcel": "^1.12.4",
-    "parcel-plugin-sw-cache": "^0.3.1"
+    "parcel-plugin-sw-cache": "^0.3.1",
+    "typescript": "^4.9.5"
   }
 }
