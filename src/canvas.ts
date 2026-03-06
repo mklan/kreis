@@ -13,6 +13,18 @@ export interface DrawCircleOptions {
 export interface CanvasAPI {
   getCenter: () => Point;
   drawCircle: (opts: DrawCircleOptions) => fabric.Circle;
+  /** Draw a filled pie-slice sector from the centre out to radius r. */
+  drawSector: (
+    cx: number,
+    cy: number,
+    r: number,
+    fromDeg: number,
+    toDeg: number,
+    cw: boolean,
+    fill: string,
+  ) => fabric.Object;
+  /** Remove a previously added canvas object. */
+  removeObject: (obj: fabric.Object) => void;
   reset: () => void;
   canvas: fabric.Canvas;
 }
@@ -91,9 +103,48 @@ function createCanvas(canvasEl: string, options: CanvasOptions = {}): void {
     return circle;
   }
 
+  function drawSector(
+    cx: number,
+    cy: number,
+    r: number,
+    fromDeg: number,
+    toDeg: number,
+    cw: boolean,
+    fill: string,
+  ): fabric.Object {
+    const fromRad = (fromDeg * Math.PI) / 180;
+    const toRad = (toDeg * Math.PI) / 180;
+    const x1 = cx + r * Math.cos(fromRad);
+    const y1 = cy + r * Math.sin(fromRad);
+    const x2 = cx + r * Math.cos(toRad);
+    const y2 = cy + r * Math.sin(toRad);
+    // sweep-flag: 1 = clockwise, 0 = counter-clockwise
+    const sweepFlag = cw ? 1 : 0;
+    // Each sector is 45° (< 180°) so large-arc-flag is always 0
+    const d = `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 0 ${sweepFlag} ${x2} ${y2} Z`;
+    const path = new fabric.Path(d, {
+      fill,
+      stroke: null,
+      strokeWidth: 0,
+      selectable: false,
+      evented: false,
+    } as any);
+    canvas.add(path);
+    canvas.sendToBack(path);
+    canvas.renderAll();
+    return path as unknown as fabric.Object;
+  }
+
+  function removeObject(obj: fabric.Object): void {
+    canvas.remove(obj);
+    canvas.renderAll();
+  }
+
   const api: CanvasAPI = {
     getCenter,
     drawCircle,
+    drawSector,
+    removeObject,
     reset,
     canvas,
   };
