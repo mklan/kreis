@@ -17,7 +17,7 @@ Game with the goal to draw a perfect circle.
 ## TODOs / Roadmap
 
 - [x] better score system (time factor)
-- [] checkpoint control system
+- [x] checkpoint control system
 - [] google play (cordova)
 - [] soundtrack
 - [] sound effects i.E https://github.com/nbrosowsky/tonejs-instruments

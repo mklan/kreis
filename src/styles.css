@@ -57,6 +57,13 @@ h2 {
   text-align: center;
 }
 
+#hint {
+  font-size: 16px;
+  color: #50514f;
+  margin: 0;
+  opacity: 0.7;
+}
+
 #author {
   position: absolute;
   right: 0;
