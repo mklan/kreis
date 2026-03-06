@@ -1,5 +1,11 @@
 import createCanvas, { CanvasAPI } from './canvas';
 import { Point, getDistance, getAngle, getAngularDelta } from './math.utils';
+import {
+  playStartSound,
+  playCheckpointSound,
+  playGameOverSound,
+  startBackgroundMusic,
+} from './sounds';
 
 // Number of checkpoints evenly spaced around the circle (every 45°)
 const NUM_CHECKPOINTS = 8;
@@ -22,13 +28,11 @@ const MAX_TIME_BONUS_SECONDS = 5;
 const MIN_SWEEP_FOR_BONUS = 350;
 // Base value used to compute the time bonus (bonus = TIME_BONUS_BASE / time)
 const TIME_BONUS_BASE = 500;
-// Offset to place the first checkpoint tick at 12 o'clock (top of circle)
-const TWELVE_OCLOCK_OFFSET = -90;
 // Visual radii (px)
-const CHECKPOINT_MARKER_RADIUS = 4;
-const CHECKPOINT_MARKER_HIGHLIGHTED_RADIUS = 7;
 const START_MARKER_RADIUS = 8;
 const CENTER_DOT_RADIUS = 8;
+// Fill colour for completed sector arcs
+const SECTOR_ARC_FILL = 'rgba(112, 193, 179, 0.72)';
 
 interface GameOptions {
   canvasEl: string;
@@ -50,14 +54,14 @@ function createGame({ canvasEl, onGameOver, highscore: initialHighscore }: GameO
   let referenceRadius = 0;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let referenceRing: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let checkpointMarkers: any[] = [];
   let currentApi: CanvasAPI | null = null;
 
   // ---------- per-round state ----------
   let isActive = false;
   let referenceDistance = 0;
   let lastAngle = 0;
+  /** Screen angle (degrees) at the exact point where the user started. */
+  let startAngle = 0;
   /** Cumulative angular progress in the chosen direction (0 → 360 = full circle). */
   let totalSweep = 0;
   /** +1 if CW, -1 if CCW, 0 before determined */
@@ -71,11 +75,17 @@ function createGame({ canvasEl, onGameOver, highscore: initialHighscore }: GameO
   /** True once a full 360° sweep has been achieved */
   let gameCompleted = false;
   let finalScore = 0;
+  /** How many sector arcs are currently drawn (equals the number of fully swept sectors). */
+  let completedSectors = 0;
+  /** Fabric objects for each drawn sector arc (null = not yet drawn). */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let sectorArcs: (any | null)[] = [];
 
   function resetRoundState(): void {
     isActive = false;
     referenceDistance = 0;
     lastAngle = 0;
+    startAngle = 0;
     totalSweep = 0;
     direction = 0;
     initialDeltas = [];
@@ -85,51 +95,51 @@ function createGame({ canvasEl, onGameOver, highscore: initialHighscore }: GameO
     finalScore = 0;
     sectorDeviations = new Array(NUM_CHECKPOINTS).fill(0);
     sectorCounts = new Array(NUM_CHECKPOINTS).fill(0);
+    // canvas.clear() has already been called by reset(); just null the refs
+    completedSectors = 0;
+    sectorArcs = new Array(NUM_CHECKPOINTS).fill(null);
   }
 
   // ---- scoring ----
   function computeScore(): number {
     const maxPerSector = 10000 / NUM_CHECKPOINTS;
-    const penaltyPerPixel = PENALTY_PER_PIXEL;
 
     let totalScore = 0;
     for (let i = 0; i < NUM_CHECKPOINTS; i++) {
       if (sectorCounts[i] === 0) continue;
       const avgDeviation = sectorDeviations[i] / sectorCounts[i];
-      totalScore += Math.max(0, maxPerSector - avgDeviation * penaltyPerPixel);
+      totalScore += Math.max(0, maxPerSector - avgDeviation * PENALTY_PER_PIXEL);
     }
     return Math.round(totalScore);
   }
 
-  // ---- visual helpers ----
-  function addCheckpointMarkers(api: CanvasAPI): void {
-    checkpointMarkers.forEach((m) => api.canvas.remove(m));
-    checkpointMarkers = [];
-    for (let i = 0; i < NUM_CHECKPOINTS; i++) {
-      const angleDeg = (360 / NUM_CHECKPOINTS) * i + TWELVE_OCLOCK_OFFSET;
-      const angleRad = (angleDeg * Math.PI) / 180;
-      const x = centerPosition.x + referenceRadius * Math.cos(angleRad);
-      const y = centerPosition.y + referenceRadius * Math.sin(angleRad);
-      const marker = api.drawCircle({
-        x,
-        y,
-        fill: '#50514F',
-        strokeWidth: 0,
-        radius: CHECKPOINT_MARKER_RADIUS,
-      });
-      checkpointMarkers.push(marker);
-    }
-  }
+  // ---- arc helpers ----
+  /**
+   * Draw a pie-slice arc for the given sector index, based on the user's
+   * start angle and chosen direction. Returns the fabric object.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function drawSectorArc(sectorIdx: number): any {
+    if (!currentApi || direction === 0) return null;
 
-  function highlightSector(sectorIndex: number, api: CanvasAPI): void {
-    const marker = checkpointMarkers[sectorIndex];
-    if (!marker) return;
-    (marker as any).animate('radius', CHECKPOINT_MARKER_HIGHLIGHTED_RADIUS, {
-      duration: 150,
-      onChange: api.canvas.renderAll.bind(api.canvas),
-    });
-    (marker as any).set('fill', '#70C1B3');
-    api.canvas.renderAll();
+    const cx = centerPosition.x;
+    const cy = centerPosition.y;
+    const r = referenceDistance || referenceRadius;
+
+    let fromDeg: number;
+    let toDeg: number;
+
+    if (direction === 1) {
+      // Clockwise: sector i spans [startAngle + i×45°, startAngle + (i+1)×45°]
+      fromDeg = startAngle + sectorIdx * CHECKPOINT_ANGLE;
+      toDeg = startAngle + (sectorIdx + 1) * CHECKPOINT_ANGLE;
+    } else {
+      // Counter-clockwise: sector i spans back from startAngle
+      fromDeg = startAngle - sectorIdx * CHECKPOINT_ANGLE;
+      toDeg = startAngle - (sectorIdx + 1) * CHECKPOINT_ANGLE;
+    }
+
+    return currentApi.drawSector(cx, cy, r, fromDeg, toDeg, direction === 1, SECTOR_ARC_FILL);
   }
 
   // ---- event handlers ----
@@ -152,10 +162,15 @@ function createGame({ canvasEl, onGameOver, highscore: initialHighscore }: GameO
       return;
     }
 
+    // Start background music on first user interaction (browser autoplay policy)
+    startBackgroundMusic();
+    playStartSound();
+
     resetRoundState();
     isActive = true;
     referenceDistance = dist;
     lastAngle = getAngle(point, centerPosition);
+    startAngle = lastAngle;
     startTime = Date.now();
 
     // Show a small yellow marker at the start position
@@ -221,10 +236,28 @@ function createGame({ canvasEl, onGameOver, highscore: initialHighscore }: GameO
       const deviation = Math.abs(dist - referenceDistance);
       sectorDeviations[sectorIdx] += deviation;
       sectorCounts[sectorIdx]++;
+    }
 
-      // Highlight the sector marker when it is first entered
-      if (sectorCounts[sectorIdx] === 1 && currentApi) {
-        highlightSector(sectorIdx, currentApi);
+    // ── Update sector arc visuals ──
+    const newCompletedCount = Math.min(
+      Math.floor(Math.max(0, totalSweep) / CHECKPOINT_ANGLE),
+      NUM_CHECKPOINTS,
+    );
+
+    // Add arcs for newly completed sectors
+    while (completedSectors < newCompletedCount && completedSectors < NUM_CHECKPOINTS) {
+      const arc = drawSectorArc(completedSectors);
+      sectorArcs[completedSectors] = arc;
+      playCheckpointSound(completedSectors);
+      completedSectors++;
+    }
+
+    // Remove arcs when the user reverses past a sector boundary
+    while (completedSectors > newCompletedCount && completedSectors > 0) {
+      completedSectors--;
+      if (sectorArcs[completedSectors] && currentApi) {
+        currentApi.removeObject(sectorArcs[completedSectors]);
+        sectorArcs[completedSectors] = null;
       }
     }
 
@@ -259,6 +292,8 @@ function createGame({ canvasEl, onGameOver, highscore: initialHighscore }: GameO
       api.reset();
       return;
     }
+
+    playGameOverSound();
 
     const time = (Date.now() - startTime) / 1000;
     let total = gameCompleted ? finalScore : computeScore();
@@ -308,9 +343,6 @@ function createGame({ canvasEl, onGameOver, highscore: initialHighscore }: GameO
       radius: referenceRadius,
     });
 
-    // Tick marks at each checkpoint angle so users see the 8 targets
-    addCheckpointMarkers(api);
-
     // Reset round state
     resetRoundState();
   }
@@ -324,3 +356,4 @@ function createGame({ canvasEl, onGameOver, highscore: initialHighscore }: GameO
 }
 
 export default createGame;
+
